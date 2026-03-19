@@ -11,7 +11,7 @@ class Communication:
     ser = serial.Serial()
 
     def __init__(self):
-        self.baudrate = 9600
+        self.baudrate = 115200
         print("the available ports are (if none appear, press any letter): ")
         for port in sorted(self.ports):
             # obtener la lista de puetos: https://stackoverflow.com/a/52809180
@@ -31,15 +31,29 @@ class Communication:
             print(self.portName, " it's already closed")
 
     def getData(self):
-        if(self.dummyMode == False):
-            value = self.ser.readline()  # read line (single value) from the serial port
-            decoded_bytes = str(value[0:len(value) - 2].decode("utf-8"))
-            # print(decoded_bytes)
-            value_chain = decoded_bytes.split(",")
+        if self.dummyPlug == False: # Check the variable directly
+            try:
+                # 1. Read the line from the USB cable
+                value = self.ser.readline() 
+                
+                # 2. Decode and clean (remove \r\n characters)
+                decoded_bytes = value.decode("utf-8").strip()
+                
+                # 3. Split the string by commas
+                value_chain = decoded_bytes.split(",")
+                
+                # Validation: If it's empty or garbled, don't return it
+                if len(value_chain) < 6:
+                    return None
+                    
+                return value_chain
+            except Exception as e:
+                print(f"Serial Error: {e}")
+                return None
         else:
-            value_chain = [0] + random.sample(range(0, 300), 1) + \
-                [random.getrandbits(1)] + random.sample(range(0, 20), 8)
-        return value_chain
+            # fake data when pico (receiver) is not connected
+            # time, temp, press, hum, alt, speed, rssi
+            return [0, 25.0, 1013.25, 40.0, 100.0, -2.5, -45.0]
 
     def isOpen(self):
         return self.ser.isOpen()
